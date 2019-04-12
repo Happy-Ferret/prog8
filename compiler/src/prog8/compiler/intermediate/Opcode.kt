@@ -24,6 +24,16 @@ enum class Opcode {
     DISCARD_BYTE,    // discard top byte value
     DISCARD_WORD,    // discard top word value
     DISCARD_FLOAT,   // discard top float value
+    PEEK_MEM_BYTE,   // peek (u)byte value into destination memory address
+    PEEK_MEM_WORD,   // peek (u)word value into destination memory address
+    PEEK_MEM_FLOAT,  // peek float value into destination memory address
+    PEEK_MEMWRITE,   // peek address and byte stack and write the byte to the memory address
+    PEEK_VAR_BYTE,   // peek (u)byte value into variable
+    PEEK_VAR_WORD,   // peek (u)word value into variable
+    PEEK_VAR_FLOAT,  // peek float value into variable
+    PEEK_REGAX_WORD, // peek uword from stack into A/X registers
+    PEEK_REGAY_WORD, // peek uword from stack into A/Y registers
+    PEEK_REGXY_WORD, // peek uword from stack into X/Y registers
     POP_MEM_BYTE,    // pop (u)byte value into destination memory address
     POP_MEM_WORD,    // pop (u)word value into destination memory address
     POP_MEM_FLOAT,   // pop float value into destination memory address

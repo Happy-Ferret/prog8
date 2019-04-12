@@ -624,6 +624,18 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 jsr  c64flt.pop_float_to_indexed_var
                 """
             }
+            Opcode.PEEK_MEM_BYTE -> TODO("$ins")
+            Opcode.PEEK_MEM_WORD -> TODO("$ins")
+            Opcode.PEEK_MEM_FLOAT -> TODO("$ins")
+            Opcode.PEEK_MEMWRITE -> TODO("$ins")
+            Opcode.PEEK_VAR_BYTE -> TODO("$ins")
+            Opcode.PEEK_VAR_WORD -> {
+                " lda  ${ESTACK_LO.toHex()}+1,x |  ldy  ${ESTACK_HI.toHex()}+1,x |  sta  ${ins.callLabel} |  sty  ${ins.callLabel}+1"
+            }
+            Opcode.PEEK_VAR_FLOAT -> TODO("$ins")
+            Opcode.PEEK_REGAX_WORD -> TODO("$ins")
+            Opcode.PEEK_REGAY_WORD -> TODO("$ins")
+            Opcode.PEEK_REGXY_WORD -> TODO("$ins")
             Opcode.POP_MEM_BYTE -> {
                 """
                 inx

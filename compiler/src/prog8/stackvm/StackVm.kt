@@ -349,33 +349,9 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = evalstack.pop()
                 checkDt(value, DataType.FLOAT)
             }
-            Opcode.POP_MEM_BYTE -> {
-                val value = evalstack.pop()
-                checkDt(value, DataType.BYTE, DataType.UBYTE)
-                val address = ins.arg!!.integerValue()
-                if(value.type==DataType.BYTE)
-                    mem.setSByte(address, value.integerValue().toShort())
-                else
-                    mem.setUByte(address, value.integerValue().toShort())
-                setFlags(value)
-            }
-            Opcode.POP_MEM_WORD -> {
-                val value = evalstack.pop()
-                checkDt(value, DataType.WORD, DataType.UWORD)
-                val address = ins.arg!!.integerValue()
-                if(value.type==DataType.WORD)
-                    mem.setSWord(address, value.integerValue())
-                else
-                    mem.setUWord(address, value.integerValue())
-                setFlags(value)
-            }
-            Opcode.POP_MEM_FLOAT -> {
-                val value = evalstack.pop()
-                checkDt(value, DataType.FLOAT)
-                val address = ins.arg!!.integerValue()
-                mem.setFloat(address, value.numericValue().toDouble())
-                setFlags(value)
-            }
+            Opcode.POP_MEM_BYTE -> dispatchSetMemValueByte(ins, evalstack.pop())
+            Opcode.POP_MEM_WORD -> dispatchSetMemValueWord(ins, evalstack.pop())
+            Opcode.POP_MEM_FLOAT -> dispatchSetMemValueFloat(ins, evalstack.pop())
             Opcode.POP_MEMWRITE -> {
                 val address = evalstack.pop()
                 checkDt(address, DataType.UWORD)
@@ -1047,83 +1023,39 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.POP_REGAX_WORD -> {
                 val value=evalstack.pop().integerValue()
-                val valueA: Value
-                val valueX: Value
-                if(value>=0) {
-                    valueA = Value(DataType.UBYTE, value and 255)
-                    valueX = Value(DataType.UBYTE, value shr 8)
-                } else {
-                    val value2c = 65536+value
-                    valueA = Value(DataType.UBYTE, value2c and 255)
-                    valueX = Value(DataType.UBYTE, value2c shr 8)
-                }
-                variables["A"] = valueA
-                variables["X"] = valueX
-                setFlags(valueA.bitor(valueX))
+                dispatchSetRegAX(value)
             }
             Opcode.POP_REGAY_WORD -> {
                 val value=evalstack.pop().integerValue()
-                val valueA: Value
-                val valueY: Value
-                if(value>=0) {
-                    valueA = Value(DataType.UBYTE, value and 255)
-                    valueY = Value(DataType.UBYTE, value shr 8)
-                } else {
-                    val value2c = 65536+value
-                    valueA = Value(DataType.UBYTE, value2c and 255)
-                    valueY = Value(DataType.UBYTE, value2c shr 8)
-                }
-                variables["A"] = valueA
-                variables["Y"] = valueY
-                setFlags(valueA.bitor(valueY))
+                dispatchSetRegAY(value)
             }
             Opcode.POP_REGXY_WORD -> {
                 val value=evalstack.pop().integerValue()
-                val valueX: Value
-                val valueY: Value
-                if(value>=0) {
-                    valueX = Value(DataType.UBYTE, value and 255)
-                    valueY = Value(DataType.UBYTE, value shr 8)
-                } else {
-                    val value2c = 65536+value
-                    valueX = Value(DataType.UBYTE, value2c and 255)
-                    valueY = Value(DataType.UBYTE, value2c shr 8)
-                }
-                variables["X"] = valueX
-                variables["Y"] = valueY
-                setFlags(valueX.bitor(valueY))
+                dispatchSetRegXY(value)
             }
             Opcode.POP_VAR_BYTE -> {
                 val value = evalstack.pop()
-                checkDt(value, DataType.UBYTE, DataType.BYTE)
-                val variable = getVar(ins.callLabel!!)
-                checkDt(variable, DataType.UBYTE, DataType.BYTE)
-                if(value.type!=variable.type) {
-                    if(ins.callLabel !in Register.values().map { it.name }) {
-                        throw VmExecutionException("datatype mismatch")
-                    }
-                }
-                variables[ins.callLabel] = value
-                setFlags(value)
+                dispatchSetVarValueByte(ins, value)
             }
             Opcode.POP_VAR_WORD -> {
                 val value = evalstack.pop()
-                checkDt(value, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_S)
-                val variable = getVar(ins.callLabel!!)
-                checkDt(variable, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_S)
-                if(value.type!=variable.type)
-                    throw VmExecutionException("datatype mismatch")
-                variables[ins.callLabel] = value
-                setFlags(value)
+                dispatchSetVarValueWord(ins, value)
             }
             Opcode.POP_VAR_FLOAT -> {
                 val value = evalstack.pop()
-                checkDt(value, DataType.FLOAT)
-                val variable = getVar(ins.callLabel!!)
-                checkDt(variable, DataType.FLOAT)
-                variables[ins.callLabel] = value
-                setFlags(value)
+                dispatchSetVarValueFloat(ins, value)
             }
+            Opcode.PEEK_REGAX_WORD -> dispatchSetRegAX(evalstack.peek().integerValue())
+            Opcode.PEEK_REGAY_WORD -> dispatchSetRegAY(evalstack.peek().integerValue())
+            Opcode.PEEK_REGXY_WORD -> dispatchSetRegXY(evalstack.peek().integerValue())
+            Opcode.PEEK_VAR_BYTE -> dispatchSetVarValueByte(ins, evalstack.peek())
+            Opcode.PEEK_VAR_WORD -> dispatchSetVarValueWord(ins, evalstack.peek())
+            Opcode.PEEK_VAR_FLOAT -> dispatchSetVarValueFloat(ins, evalstack.peek())
+            Opcode.PEEK_MEM_BYTE -> dispatchSetMemValueByte(ins, evalstack.peek())
+            Opcode.PEEK_MEM_WORD -> dispatchSetMemValueWord(ins, evalstack.peek())
+            Opcode.PEEK_MEM_FLOAT -> dispatchSetMemValueFloat(ins, evalstack.peek())
+            Opcode.PEEK_MEMWRITE -> TODO("peek memwrite $ins")
+
             Opcode.SHL_VAR_BYTE -> {
                 val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE)
@@ -1873,6 +1805,112 @@ class StackVm(private var traceOutputFile: String?) {
         }
 
         currentInstructionPtr++
+    }
+
+    private fun dispatchSetMemValueFloat(ins: Instruction, value: Value) {
+        checkDt(value, DataType.FLOAT)
+        val address = ins.arg!!.integerValue()
+        mem.setFloat(address, value.numericValue().toDouble())
+        setFlags(value)
+    }
+
+    private fun dispatchSetMemValueWord(ins: Instruction, value: Value) {
+        checkDt(value, DataType.WORD, DataType.UWORD)
+        val address = ins.arg!!.integerValue()
+        if(value.type==DataType.WORD)
+            mem.setSWord(address, value.integerValue())
+        else
+            mem.setUWord(address, value.integerValue())
+        setFlags(value)
+    }
+
+    private fun dispatchSetMemValueByte(ins: Instruction,  value: Value) {
+        checkDt(value, DataType.BYTE, DataType.UBYTE)
+        val address = ins.arg!!.integerValue()
+        if(value.type==DataType.BYTE)
+            mem.setSByte(address, value.integerValue().toShort())
+        else
+            mem.setUByte(address, value.integerValue().toShort())
+        setFlags(value)
+    }
+
+    private fun dispatchSetRegAX(value: Int) {
+        val valueA: Value
+        val valueX: Value
+        if(value>=0) {
+            valueA = Value(DataType.UBYTE, value and 255)
+            valueX = Value(DataType.UBYTE, value shr 8)
+        } else {
+            val value2c = 65536+value
+            valueA = Value(DataType.UBYTE, value2c and 255)
+            valueX = Value(DataType.UBYTE, value2c shr 8)
+        }
+        variables["A"] = valueA
+        variables["X"] = valueX
+        setFlags(valueA.bitor(valueX))
+    }
+
+    private fun dispatchSetRegAY(value: Int) {
+        val valueA: Value
+        val valueY: Value
+        if(value>=0) {
+            valueA = Value(DataType.UBYTE, value and 255)
+            valueY = Value(DataType.UBYTE, value shr 8)
+        } else {
+            val value2c = 65536+value
+            valueA = Value(DataType.UBYTE, value2c and 255)
+            valueY = Value(DataType.UBYTE, value2c shr 8)
+        }
+        variables["A"] = valueA
+        variables["Y"] = valueY
+        setFlags(valueA.bitor(valueY))
+    }
+
+    private fun dispatchSetRegXY(value: Int) {
+        val valueX: Value
+        val valueY: Value
+        if(value>=0) {
+            valueX = Value(DataType.UBYTE, value and 255)
+            valueY = Value(DataType.UBYTE, value shr 8)
+        } else {
+            val value2c = 65536+value
+            valueX = Value(DataType.UBYTE, value2c and 255)
+            valueY = Value(DataType.UBYTE, value2c shr 8)
+        }
+        variables["X"] = valueX
+        variables["Y"] = valueY
+        setFlags(valueX.bitor(valueY))
+    }
+
+    private fun dispatchSetVarValueByte(ins: Instruction, value: Value) {
+        checkDt(value, DataType.UBYTE, DataType.BYTE)
+        val variable = getVar(ins.callLabel!!)
+        checkDt(variable, DataType.UBYTE, DataType.BYTE)
+        if(value.type!=variable.type) {
+            if(ins.callLabel !in Register.values().map { it.name }) {
+                throw VmExecutionException("datatype mismatch")
+            }
+        }
+        variables[ins.callLabel] = value
+        setFlags(value)
+    }
+
+    private fun dispatchSetVarValueWord(ins: Instruction, value: Value) {
+        checkDt(value, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_S)
+        val variable = getVar(ins.callLabel!!)
+        checkDt(variable, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_S)
+        if(value.type!=variable.type)
+            throw VmExecutionException("datatype mismatch")
+        variables[ins.callLabel] = value
+        setFlags(value)
+    }
+
+    private fun dispatchSetVarValueFloat(ins: Instruction, value: Value) {
+        checkDt(value, DataType.FLOAT)
+        val variable = getVar(ins.callLabel!!)
+        checkDt(variable, DataType.FLOAT)
+        variables[ins.callLabel] = value
+        setFlags(value)
     }
 
     private fun determineBranchInstr(ins: Instruction): Int {

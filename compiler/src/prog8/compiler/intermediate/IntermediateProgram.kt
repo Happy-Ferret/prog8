@@ -69,11 +69,76 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         optimizeMultipleSequentialLineInstrs()
         optimizeCallReturnIntoJump()
         optimizeConditionalBranches()
-        // todo: add more optimizations to intermediate code! such as:  pop X + push X  ->  peek X  (might require new opcodes)
+        // optimizePopPushIntoPeek()           // This actually makes the code larger and slower at this time...
+        // todo: add more optimizations to intermediate code!
 
         optimizeRemoveNops()    //  must be done as the last step
         optimizeMultipleSequentialLineInstrs()      // once more
         optimizeRemoveNops()    // once more
+    }
+
+    private fun optimizePopPushIntoPeek() {
+        // pop X + push X  ->  peek X
+        // @todo asmgen for the new peek opcodes
+
+        for(blk in blocks) {
+            val instructionsToReplace = mutableMapOf<Int, Instruction>()
+
+            blk.instructions.asSequence().withIndex().filter {it.value.opcode!=Opcode.LINE}.windowed(2).toList().forEach {
+                val op0=it[0].value.opcode
+                val op1=it[1].value.opcode
+                when(op0) {
+                    Opcode.POP_MEM_BYTE -> if(op1==Opcode.PUSH_MEM_B) {
+                        // todo check same arg
+                        TODO("$it")
+                    }
+                    Opcode.POP_MEM_WORD -> if(op1==Opcode.PUSH_MEM_W) {
+                        // todo check same arg
+                        TODO("$it")
+                    }
+                    Opcode.POP_MEM_FLOAT -> if(op1==Opcode.PUSH_MEM_FLOAT) {
+                        // todo check same arg
+                        TODO("$it")
+                    }
+                    Opcode.POP_MEMWRITE -> if(op1==Opcode.PUSH_MEM_W) {
+                        // todo check same arg
+                        TODO("$it")
+                    }
+                    Opcode.POP_VAR_BYTE -> if(op1==Opcode.PUSH_VAR_BYTE) {
+                        if(it[0].value.callLabel==it[1].value.callLabel) {
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.PEEK_VAR_BYTE, callLabel = it[0].value.callLabel)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                        }
+                    }
+                    Opcode.POP_VAR_WORD -> if(op1==Opcode.PUSH_VAR_WORD) {
+                        if(it[0].value.callLabel==it[1].value.callLabel) {
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.PEEK_VAR_WORD, callLabel = it[0].value.callLabel)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                        }
+                    }
+                    Opcode.POP_VAR_FLOAT -> if(op1==Opcode.PUSH_VAR_FLOAT) {
+                        if(it[0].value.callLabel==it[1].value.callLabel) {
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.PEEK_VAR_FLOAT, callLabel = it[0].value.callLabel)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                        }
+                    }
+                    Opcode.POP_REGAX_WORD -> if(op1==Opcode.PUSH_REGAX_WORD) {
+                        TODO("$it")
+                    }
+                    Opcode.POP_REGAY_WORD -> if(op1==Opcode.PUSH_REGAY_WORD) {
+                        TODO("$it")
+                    }
+                    Opcode.POP_REGXY_WORD -> if(op1==Opcode.PUSH_REGXY_WORD) {
+                        TODO("$it")
+                    }
+                    else -> {}
+                }
+            }
+
+            for (rins in instructionsToReplace) {
+                blk.instructions[rins.key] = rins.value
+            }
+        }
     }
 
     private fun optimizeConditionalBranches() {
